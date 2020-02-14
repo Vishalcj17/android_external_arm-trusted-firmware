@@ -9,7 +9,7 @@
 #include <arch.h>
 #include <common/bl_common.h>
 #include <el3_common_macros.S>
-#include <lib/pmf/pmf_asm_macros.S>
+#include <lib/pmf/aarch64/pmf_asm_macros.S>
 #include <lib/runtime_instr.h>
 #include <lib/xlat_tables/xlat_mmu_helpers.h>
 
@@ -32,17 +32,6 @@ func bl31_entrypoint
 	mov	x22, x2
 	mov	x23, x3
 
-	/* --------------------------------------------------------------------
-	 * If PIE is enabled, fixup the Global descriptor Table and dynamic
-	 * relocations
-	 * --------------------------------------------------------------------
-	 */
-#if ENABLE_PIE
-	mov_imm	x0, BL31_BASE
-	mov_imm	x1, BL31_LIMIT
-	bl	fixup_gdt_reloc
-#endif /* ENABLE_PIE */
-
 #if !RESET_TO_BL31
 	/* ---------------------------------------------------------------------
 	 * For !RESET_TO_BL31 systems, only the primary CPU ever reaches
@@ -59,7 +48,8 @@ func bl31_entrypoint
 		_secondary_cold_boot=0				\
 		_init_memory=0					\
 		_init_c_runtime=1				\
-		_exception_vectors=runtime_exceptions
+		_exception_vectors=runtime_exceptions		\
+		_pie_fixup_size=BL31_LIMIT - BL31_BASE
 #else
 
 	/* ---------------------------------------------------------------------
@@ -74,7 +64,8 @@ func bl31_entrypoint
 		_secondary_cold_boot=!COLD_BOOT_SINGLE_CPU	\
 		_init_memory=1					\
 		_init_c_runtime=1				\
-		_exception_vectors=runtime_exceptions
+		_exception_vectors=runtime_exceptions		\
+		_pie_fixup_size=BL31_LIMIT - BL31_BASE
 
 	/* ---------------------------------------------------------------------
 	 * For RESET_TO_BL31 systems, BL31 is the first bootloader to run so
@@ -98,26 +89,16 @@ func bl31_entrypoint
 	mov	x3, x23
 	bl	bl31_setup
 
-	/* --------------------------------------------------------------------
-	 * Enable pointer authentication
-	 * --------------------------------------------------------------------
-	 */
 #if ENABLE_PAUTH
-	mrs	x0, sctlr_el3
-	orr	x0, x0, #SCTLR_EnIA_BIT
-#if ENABLE_BTI
 	/* --------------------------------------------------------------------
-	 * Enable PAC branch type compatibility
+	 * Program APIAKey_EL1 and enable pointer authentication
 	 * --------------------------------------------------------------------
 	 */
-	bic	x0, x0, #SCTLR_BT_BIT
-#endif	/* ENABLE_BTI */
-	msr	sctlr_el3, x0
-	isb
+	bl	pauth_init_enable_el3
 #endif /* ENABLE_PAUTH */
 
 	/* --------------------------------------------------------------------
-	 * Jump to main function.
+	 * Jump to main function
 	 * --------------------------------------------------------------------
 	 */
 	bl	bl31_main
@@ -184,7 +165,8 @@ func bl31_warm_entrypoint
 		_secondary_cold_boot=0				\
 		_init_memory=0					\
 		_init_c_runtime=0				\
-		_exception_vectors=runtime_exceptions
+		_exception_vectors=runtime_exceptions		\
+		_pie_fixup_size=0
 
 	/*
 	 * We're about to enable MMU and participate in PSCI state coordination.
@@ -209,24 +191,12 @@ func bl31_warm_entrypoint
 #endif
 	bl	bl31_plat_enable_mmu
 
-	/* --------------------------------------------------------------------
-	 * Enable pointer authentication
-	 * --------------------------------------------------------------------
-	 */
 #if ENABLE_PAUTH
-	bl	pauth_load_bl_apiakey
-
-	mrs	x0, sctlr_el3
-	orr	x0, x0, #SCTLR_EnIA_BIT
-#if ENABLE_BTI
 	/* --------------------------------------------------------------------
-	 * Enable PAC branch type compatibility
+	 * Program APIAKey_EL1 and enable pointer authentication
 	 * --------------------------------------------------------------------
 	 */
-	bic	x0, x0, #SCTLR_BT_BIT
-#endif	/* ENABLE_BTI */
-	msr	sctlr_el3, x0
-	isb
+	bl	pauth_init_enable_el3
 #endif /* ENABLE_PAUTH */
 
 	bl	psci_warmboot_entrypoint

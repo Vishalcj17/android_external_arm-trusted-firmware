@@ -21,7 +21,7 @@
 /* Special value used to verify platform parameters from BL2 to BL31 */
 #define ARM_BL31_PLAT_PARAM_VAL		ULL(0x0f1e2d3c4b5a6978)
 
-#define ARM_SYSTEM_COUNT		1
+#define ARM_SYSTEM_COUNT		U(1)
 
 #define ARM_CACHE_WRITEBACK_SHIFT	6
 
@@ -403,21 +403,16 @@
 #define BL31_LIMIT			(ARM_AP_TZC_DRAM1_BASE +	\
 						PLAT_ARM_MAX_BL31_SIZE)
 #elif (RESET_TO_BL31)
-
-# if ENABLE_PIE
+/* Ensure Position Independent support (PIE) is enabled for this config.*/
+# if !ENABLE_PIE
+#  error "BL31 must be a PIE if RESET_TO_BL31=1."
+#endif
 /*
  * Since this is PIE, we can define BL31_BASE to 0x0 since this macro is solely
  * used for building BL31 and not used for loading BL31.
  */
 #  define BL31_BASE			0x0
 #  define BL31_LIMIT			PLAT_ARM_MAX_BL31_SIZE
-# else
-/* Put BL31_BASE in the middle of the Trusted SRAM.*/
-#  define BL31_BASE			(ARM_TRUSTED_SRAM_BASE + \
-					(PLAT_ARM_TRUSTED_SRAM_SIZE >> 1))
-#  define BL31_LIMIT			(ARM_BL_RAM_BASE + ARM_BL_RAM_SIZE)
-# endif /* ENABLE_PIE */
-
 #else
 /* Put BL31 below BL2 in the Trusted SRAM.*/
 #define BL31_BASE			((ARM_BL_RAM_BASE + ARM_BL_RAM_SIZE)\
@@ -462,7 +457,7 @@
  * Trusted DRAM (if available) or the DRAM region secured by the TrustZone
  * controller.
  */
-# if ENABLE_SPM
+# if SPM_MM
 #  define TSP_SEC_MEM_BASE		(ARM_AP_TZC_DRAM1_BASE + ULL(0x200000))
 #  define TSP_SEC_MEM_SIZE		(ARM_AP_TZC_DRAM1_SIZE - ULL(0x200000))
 #  define BL32_BASE			(ARM_AP_TZC_DRAM1_BASE + ULL(0x200000))
@@ -505,9 +500,9 @@
  * SPD and no SPM, as they are the only ones that can be used as BL32.
  */
 #if defined(__aarch64__) && !JUNO_AARCH32_EL3_RUNTIME
-# if defined(SPD_none) && !ENABLE_SPM
+# if defined(SPD_none) && !SPM_MM
 #  undef BL32_BASE
-# endif /* defined(SPD_none) && !ENABLE_SPM */
+# endif /* defined(SPD_none) && !SPM_MM*/
 #endif /* defined(__aarch64__) && !JUNO_AARCH32_EL3_RUNTIME */
 
 /*******************************************************************************

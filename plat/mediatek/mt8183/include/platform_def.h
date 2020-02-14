@@ -25,6 +25,7 @@
 #define MCUCFG_BASE        0x0c530000
 #define CFG_SF_CTRL        0x0c510014
 #define CFG_SF_INI         0x0c510010
+#define EMI_BASE           (IO_PHYS + 0x219000)
 #define EMI_MPU_BASE       (IO_PHYS + 0x226000)
 #define TRNG_base          (IO_PHYS + 0x20f000)
 #define MT_GIC_BASE        0x0c000000
@@ -38,9 +39,17 @@
 
 #define INFRACFG_AO_BASE   (IO_PHYS + 0x1000)
 
+#define TOPCKGEN_BASE      (IO_PHYS + 0x0)
+#define CLK_SCP_CFG_0      (TOPCKGEN_BASE + 0x200)
+#define CLK_SCP_CFG_1      (TOPCKGEN_BASE + 0x204)
+
 #define APMIXEDSYS         (IO_PHYS + 0xC000)
+#define AP_PLL_CON3        (APMIXEDSYS + 0xC)
+#define AP_PLL_CON4        (APMIXEDSYS + 0x10)
+#define AP_PLL_CON6        (APMIXEDSYS + 0x18)
 #define ARMPLL_LL_CON0     (APMIXEDSYS + 0x200)
 #define ARMPLL_L_CON0      (APMIXEDSYS + 0x210)
+#define ARMPLL_L_PWR_CON0  (APMIXEDSYS + 0x21c)
 #define MAINPLL_CON0       (APMIXEDSYS + 0x220)
 #define CCIPLL_CON0        (APMIXEDSYS + 0x290)
 
@@ -74,6 +83,7 @@
 #define MT_L2_WRITE_ACCESS_RATE  (MCUCFG_BASE + 0x604)
 #define MP0_CA7L_CACHE_CONFIG    (MCUCFG_BASE + 0x7f0)
 #define MP1_CA7L_CACHE_CONFIG    (MCUCFG_BASE + 0x7f4)
+#define EMI_WFIFO                (MCUCFG_BASE + 0x0b5c)
 
 /*******************************************************************************
  * GIC related constants
@@ -87,6 +97,7 @@
  * UART related constants
  ******************************************************************************/
 #define UART0_BASE    (IO_PHYS + 0x01002000)
+#define UART1_BASE    (IO_PHYS + 0x01003000)
 
 #define UART_BAUDRATE 115200
 #define UART_CLOCK    26000000
@@ -257,13 +268,13 @@ INTR_PROP_DESC(MT_IRQ_SEC_SGI_7, GIC_HIGHEST_SEC_PRIORITY, grp, \
 #define PLAT_MAX_OFF_STATE		U(2)
 
 #define PLATFORM_CACHE_LINE_SIZE        64
-#define PLATFORM_SYSTEM_COUNT           1
-#define PLATFORM_CLUSTER_COUNT          2
-#define PLATFORM_CLUSTER0_CORE_COUNT    4
-#define PLATFORM_CLUSTER1_CORE_COUNT    4
+#define PLATFORM_SYSTEM_COUNT           U(1)
+#define PLATFORM_CLUSTER_COUNT          U(2)
+#define PLATFORM_CLUSTER0_CORE_COUNT    U(4)
+#define PLATFORM_CLUSTER1_CORE_COUNT    U(4)
 #define PLATFORM_CORE_COUNT             (PLATFORM_CLUSTER1_CORE_COUNT + \
 					 PLATFORM_CLUSTER0_CORE_COUNT)
-#define PLATFORM_MAX_CPUS_PER_CLUSTER   4
+#define PLATFORM_MAX_CPUS_PER_CLUSTER   U(4)
 #define PLATFORM_NUM_AFFS               (PLATFORM_SYSTEM_COUNT + \
 					 PLATFORM_CLUSTER_COUNT + \
 					 PLATFORM_CORE_COUNT)
@@ -273,7 +284,7 @@ INTR_PROP_DESC(MT_IRQ_SEC_SGI_7, GIC_HIGHEST_SEC_PRIORITY, grp, \
  ******************************************************************************/
 
 #define TZRAM_BASE          0x54600000
-#define TZRAM_SIZE          0x00020000
+#define TZRAM_SIZE          0x00030000
 
 /*******************************************************************************
  * BL31 specific defines.
@@ -291,7 +302,7 @@ INTR_PROP_DESC(MT_IRQ_SEC_SGI_7, GIC_HIGHEST_SEC_PRIORITY, grp, \
  ******************************************************************************/
 #define PLAT_PHY_ADDR_SPACE_SIZE    (1ULL << 32)
 #define PLAT_VIRT_ADDR_SPACE_SIZE   (1ULL << 32)
-#define MAX_XLAT_TABLES             4
+#define MAX_XLAT_TABLES             16
 #define MAX_MMAP_REGIONS            16
 
 /*******************************************************************************

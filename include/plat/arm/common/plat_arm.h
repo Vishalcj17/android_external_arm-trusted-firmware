@@ -38,7 +38,7 @@ typedef struct arm_tzc_regions_info {
  *   - Region 1 with secure access only;
  *   - the remaining DRAM regions access from the given Non-Secure masters.
  ******************************************************************************/
-#if ENABLE_SPM && SPM_MM
+#if SPM_MM
 #define ARM_TZC_REGIONS_DEF						\
 	{ARM_AP_TZC_DRAM1_BASE, ARM_EL3_TZC_DRAM1_END,			\
 		TZC_REGION_S_RDWR, 0},					\
@@ -253,6 +253,11 @@ void plat_arm_interconnect_exit_coherency(void);
 void plat_arm_program_trusted_mailbox(uintptr_t address);
 int plat_arm_bl1_fwu_needed(void);
 __dead2 void plat_arm_error_handler(int err);
+
+/*
+ * Optional function in ARM standard platforms
+ */
+void plat_arm_override_gicr_frames(const uintptr_t *plat_gicr_frames);
 
 #if ARM_PLAT_MT
 unsigned int plat_arm_get_cpu_pe_count(u_register_t mpidr);

@@ -20,9 +20,8 @@
 #define PRE_CALIBRATION_DELAY		1
 #define POST_CALIBRATION_DELAY		1
 #define TIMEOUT_EMIF_CALIBRATION	1000
-#define CLEAR_EMIF_DELAY		50000
-#define CLEAR_EMIF_TIMEOUT		0x100000
-#define TIMEOUT_INT_RESP		10000
+#define CLEAR_EMIF_DELAY		1000
+#define CLEAR_EMIF_TIMEOUT		1000
 
 #define DDR_CONFIG(A, B, C, R)	(((A) << 24) | ((B) << 16) | ((C) << 8) | (R))
 #define DDR_CONFIG_ELEMENTS	(sizeof(ddr_config)/sizeof(uint32_t))
@@ -125,7 +124,7 @@ static int mem_calibration(void)
 			data = mmio_read_32(AGX_MPFE_HMC_ADP_DDRCALSTAT);
 			if (AGX_MPFE_HMC_ADP_DDRCALSTAT_CAL(data) == 1)
 				break;
-			mdelay(1);
+			udelay(500);
 		} while (++timeout < TIMEOUT_EMIF_CALIBRATION);
 
 		if (AGX_MPFE_HMC_ADP_DDRCALSTAT_CAL(data) == 0) {
@@ -160,8 +159,6 @@ int init_hard_memory_controller(void)
 		return status;
 	}
 
-/*	mmio_clrbits_32(AGX_RSTMGR_BRGMODRST, AGX_RSTMGR_BRGMODRST_DDRSCH);*/
-
 	status = mem_calibration();
 	if (status) {
 		ERROR("DDR: Memory Calibration Failed\n");
@@ -169,7 +166,6 @@ int init_hard_memory_controller(void)
 	}
 
 	configure_hmc_adaptor_regs();
-/*	configure_ddr_sched_ctrl_regs();*/
 
 	return 0;
 }
@@ -359,16 +355,17 @@ void configure_hmc_adaptor_regs(void)
 	mmio_write_32(AGX_MPFE_HMC_ADP(ADP_DRAMADDRWIDTH), data);
 
 	/* Enable nonsecure access to DDR */
-	mmio_write_32(AGX_NOC_FW_DDR_SCR_MPUREGION0ADDR_LIMIT,
-			AGX_DDR_SIZE - 1);
-	mmio_write_32(AGX_NOC_FW_DDR_SCR_MPUREGION0ADDR_LIMITEXT,
-			0x1f);
+	data = get_physical_dram_size();
 
-	mmio_write_32(AGX_NOC_FW_DDR_SCR_NONMPUREGION0ADDR_LIMIT,
-			AGX_DDR_SIZE - 1);
+	if (data < AGX_DDR_SIZE)
+		data = AGX_DDR_SIZE;
+
+	mmio_write_32(AGX_NOC_FW_DDR_SCR_MPUREGION0ADDR_LIMIT, data - 1);
+	mmio_write_32(AGX_NOC_FW_DDR_SCR_MPUREGION0ADDR_LIMITEXT, 0x1f);
+
+	mmio_write_32(AGX_NOC_FW_DDR_SCR_NONMPUREGION0ADDR_LIMIT, data - 1);
 
 	mmio_write_32(AGX_SOC_NOC_FW_DDR_SCR_ENABLESET, BIT(0) | BIT(8));
-
 
 	/* ECC enablement */
 	data = mmio_read_32(AGX_MPFE_IOHMC_REG_CTRLCFG1);

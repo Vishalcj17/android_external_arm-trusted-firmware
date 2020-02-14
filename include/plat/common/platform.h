@@ -22,7 +22,7 @@ struct image_desc;
 struct bl_load_info;
 struct bl_params;
 struct mmap_region;
-struct secure_partition_boot_info;
+struct spm_mm_boot_info;
 struct sp_res_desc;
 
 /*******************************************************************************
@@ -104,7 +104,6 @@ void plat_panic_handler(void) __dead2;
 const char *plat_log_get_prefix(unsigned int log_level);
 void bl2_plat_preload_setup(void);
 int plat_try_next_boot_source(void);
-uint64_t *plat_init_apiakey(void);
 
 /*******************************************************************************
  * Mandatory BL1 functions
@@ -238,7 +237,7 @@ void plat_psci_stat_accounting_start(const psci_power_state_t *state_info);
 void plat_psci_stat_accounting_stop(const psci_power_state_t *state_info);
 u_register_t plat_psci_stat_get_residency(unsigned int lvl,
 			const psci_power_state_t *state_info,
-			int last_cpu_idx);
+			unsigned int last_cpu_idx);
 plat_local_state_t plat_get_target_pwr_state(unsigned int lvl,
 			const plat_local_state_t *states,
 			unsigned int ncpu);
@@ -268,7 +267,7 @@ int get_mbedtls_heap_helper(void **heap_addr, size_t *heap_size);
  * Secure Partitions functions
  ******************************************************************************/
 const struct mmap_region *plat_get_secure_partition_mmap(void *cookie);
-const struct secure_partition_boot_info *plat_get_secure_partition_boot_info(
+const struct spm_mm_boot_info *plat_get_secure_partition_boot_info(
 		void *cookie);
 int plat_spm_sp_rd_load(struct sp_res_desc *rd, const void *ptr, size_t size);
 int plat_spm_sp_get_next_address(void **sp_base, size_t *sp_size,

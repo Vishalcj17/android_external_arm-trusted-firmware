@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,6 +11,9 @@
 
 /* Neoverse N1 MIDR for revision 0 */
 #define NEOVERSE_N1_MIDR		U(0x410fd0c0)
+
+/* Exception Syndrome register EC code for IC Trap */
+#define NEOVERSE_N1_EC_IC_TRAP		U(0x1f)
 
 /*******************************************************************************
  * CPU Power Control register specific definitions.
@@ -32,6 +35,7 @@
 
 #define NEOVERSE_N1_WS_THR_L2_MASK	(ULL(3) << 24)
 #define NEOVERSE_N1_CPUECTLR_EL1_MM_TLBPF_DIS_BIT	(ULL(1) << 51)
+#define NEOVERSE_N1_CPUECTLR_EL1_EXTLLC_BIT		(ULL(1) << 0)
 
 /*******************************************************************************
  * CPU Auxiliary Control register specific definitions.

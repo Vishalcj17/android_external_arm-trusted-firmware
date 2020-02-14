@@ -9,7 +9,7 @@ Build options
 -------------
 
 Several build options can be used to check for security issues. Refer to the
-`user guide`_ for detailed information on the specific build options.
+:ref:`Build Options` for detailed information on these.
 
 - The ``BRANCH_PROTECTION`` build flag can be used to enable Pointer
   Authentication and Branch Target Identification.
@@ -30,20 +30,18 @@ Several build options can be used to check for security issues. Refer to the
 
   - W=1
 
-    Adds ``Wextra``, ``Wmissing-declarations``, ``Wmissing-format-attribute``,
-    ``Wmissing-prototypes``, ``Wold-style-definition`` and
-    ``Wunused-const-variable``.
+    Adds ``Wextra``, ``Wmissing-format-attribute``, ``Wmissing-prototypes``,
+    ``Wold-style-definition`` and ``Wunused-const-variable``.
 
   - W=2
 
     Adds ``Waggregate-return``, ``Wcast-align``, ``Wnested-externs``,
-    ``Wshadow``, ``Wlogical-op``, ``Wmissing-field-initializers`` and
-    ``Wsign-compare``.
+    ``Wshadow``, ``Wlogical-op``.
 
   - W=3
 
     Adds ``Wbad-function-cast``, ``Wcast-qual``, ``Wconversion``, ``Wpacked``,
-    ``Wpadded``, ``Wpointer-arith``, ``Wredundant-decls`` and
+    ``Wpointer-arith``, ``Wredundant-decls`` and
     ``Wswitch-default``.
 
   Refer to the GCC or Clang documentation for more information on the individual
@@ -53,6 +51,6 @@ Several build options can be used to check for security issues. Refer to the
   NB: The ``Werror`` flag is enabled by default in TF-A and can be disabled by
   setting the ``E`` build flag to 0.
 
-*Copyright (c) 2019, Arm Limited. All rights reserved.*
+--------------
 
-.. _user guide: ../getting_started/user-guide.rst
+*Copyright (c) 2019, Arm Limited. All rights reserved.*

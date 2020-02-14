@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,6 +11,7 @@
 
 #include <arch.h>
 #include <arch_helpers.h>
+#include <drivers/ti/uart/uart_16550.h>
 #include <lib/psci/psci.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 
@@ -75,7 +76,7 @@ int32_t tegra_soc_validate_power_state(uint32_t power_state,
 
 /* Declarations for plat_setup.c */
 const mmap_region_t *plat_get_mmio_map(void);
-uint32_t plat_get_console_from_id(int32_t id);
+void plat_enable_console(int32_t id);
 void plat_gic_setup(void);
 struct tegra_bl31_params *plat_get_bl31_params(void);
 plat_params_from_bl2_t *plat_get_bl31_plat_params(void);
@@ -96,8 +97,6 @@ void tegra_security_setup(void);
 void tegra_security_setup_videomem(uintptr_t base, uint64_t size);
 
 /* Declarations for tegra_pm.c */
-extern uint8_t tegra_fake_system_suspend;
-
 void tegra_pm_system_suspend_entry(void);
 void tegra_pm_system_suspend_exit(void);
 int32_t tegra_system_suspended(void);
@@ -138,7 +137,6 @@ int32_t bl31_check_ns_address(uint64_t base, uint64_t size_in_bytes);
 void tegra_delay_timer_init(void);
 
 void tegra_secure_entrypoint(void);
-void tegra186_cpu_reset_handler(void);
 
 /* Declarations for tegra_sip_calls.c */
 uintptr_t tegra_sip_handler(uint32_t smc_fid,

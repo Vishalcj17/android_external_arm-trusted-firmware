@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -42,21 +42,22 @@ extern void memcpy16(void *dest, const void *src, unsigned int length);
  ******************************************************************************/
 
 IMPORT_SYM(uint64_t, __RW_START__,	BL31_RW_START);
-IMPORT_SYM(uint64_t, __RW_END__,	BL31_RW_END);
-IMPORT_SYM(uint64_t, __RODATA_START__,	BL31_RODATA_BASE);
-IMPORT_SYM(uint64_t, __RODATA_END__,	BL31_RODATA_END);
-IMPORT_SYM(uint64_t, __TEXT_START__,	TEXT_START);
-IMPORT_SYM(uint64_t, __TEXT_END__,	TEXT_END);
+
+static const uint64_t BL31_RW_END	= BL_END;
+static const uint64_t BL31_RODATA_BASE	= BL_RO_DATA_BASE;
+static const uint64_t BL31_RODATA_END	= BL_RO_DATA_END;
+static const uint64_t TEXT_START	= BL_CODE_BASE;
+static const uint64_t TEXT_END		= BL_CODE_END;
 
 extern uint64_t tegra_bl31_phys_base;
-extern uint64_t tegra_console_base;
 
 static entry_point_info_t bl33_image_ep_info, bl32_image_ep_info;
 static plat_params_from_bl2_t plat_bl31_params_from_bl2 = {
 	.tzdram_size = TZDRAM_SIZE
 };
-static unsigned long bl32_mem_size;
-static unsigned long bl32_boot_params;
+#ifdef SPD_trusty
+static aapcs64_params_t bl32_args;
+#endif
 
 /*******************************************************************************
  * This variable holds the non-secure image entry address
@@ -131,7 +132,6 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	plat_params_from_bl2_t *plat_params = (plat_params_from_bl2_t *)arg1;
 	image_info_t bl32_img_info = { {0} };
 	uint64_t tzdram_start, tzdram_end, bl32_start, bl32_end;
-	uint32_t console_clock;
 	int32_t ret;
 
 	/*
@@ -157,8 +157,10 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 
 	if (arg_from_bl2->bl32_ep_info != NULL) {
 		bl32_image_ep_info = *arg_from_bl2->bl32_ep_info;
-		bl32_mem_size = arg_from_bl2->bl32_ep_info->args.arg0;
-		bl32_boot_params = arg_from_bl2->bl32_ep_info->args.arg2;
+#ifdef SPD_trusty
+		/* save BL32 boot parameters */
+		memcpy(&bl32_args, &arg_from_bl2->bl32_ep_info->args, sizeof(bl32_args));
+#endif
 	}
 
 	/*
@@ -182,27 +184,9 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 	}
 
 	/*
-	 * Reference clock used by the FPGAs is a lot slower.
+	 * Enable console for the platform
 	 */
-	if (tegra_platform_is_fpga()) {
-		console_clock = TEGRA_BOOT_UART_CLK_13_MHZ;
-	} else {
-		console_clock = TEGRA_BOOT_UART_CLK_408_MHZ;
-	}
-
-	/*
-	 * Get the base address of the UART controller to be used for the
-	 * console
-	 */
-	tegra_console_base = plat_get_console_from_id(plat_params->uart_id);
-
-	if (tegra_console_base != 0U) {
-		/*
-		 * Configure the UART port to be used as the console
-		 */
-		(void)console_init(tegra_console_base, console_clock,
-			     TEGRA_CONSOLE_BAUDRATE);
-	}
+	plat_enable_console(plat_params->uart_id);
 
 	/*
 	 * The previous bootloader passes the base address of the shared memory
@@ -293,17 +277,20 @@ void bl31_early_platform_setup2(u_register_t arg0, u_register_t arg1,
 #ifdef SPD_trusty
 void plat_trusty_set_boot_args(aapcs64_params_t *args)
 {
-	args->arg0 = bl32_mem_size;
-	args->arg1 = bl32_boot_params;
-	args->arg2 = TRUSTY_PARAMS_LEN_BYTES;
+	/*
+	* arg0 = TZDRAM aperture available for BL32
+	* arg1 = BL32 boot params
+	* arg2 = EKS Blob Length
+	* arg3 = Boot Profiler Carveout Base
+	*/
+	args->arg0 = bl32_args.arg0;
+	args->arg1 = bl32_args.arg2;
 
 	/* update EKS size */
-	if (args->arg4 != 0U) {
-		args->arg2 = args->arg4;
-	}
+	args->arg2 = bl32_args.arg4;
 
 	/* Profiler Carveout Base */
-	args->arg3 = args->arg5;
+	args->arg3 = bl32_args.arg5;
 }
 #endif
 

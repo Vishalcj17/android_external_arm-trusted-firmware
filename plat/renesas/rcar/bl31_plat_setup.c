@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013-2014, ARM Limited and Contributors. All rights reserved.
- * Copyright (c) 2015-2019, Renesas Electronics Corporation. All rights reserved.
+ * Copyright (c) 2015-2020, Renesas Electronics Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -22,12 +22,12 @@
 #include "rcar_private.h"
 #include "rcar_version.h"
 
-IMPORT_SYM(uint64_t, __RO_START__, BL31_RO_BASE)
-IMPORT_SYM(uint64_t, __RO_END__, BL31_RO_LIMIT)
+static const uint64_t BL31_RO_BASE		= BL_CODE_BASE;
+static const uint64_t BL31_RO_LIMIT		= BL_CODE_END;
 
 #if USE_COHERENT_MEM
-IMPORT_SYM(uint64_t, __COHERENT_RAM_START__, BL31_COHERENT_RAM_BASE)
-IMPORT_SYM(uint64_t, __COHERENT_RAM_END__, BL31_COHERENT_RAM_LIMIT)
+static const uint64_t BL31_COHERENT_RAM_BASE	= BL_COHERENT_RAM_BASE;
+static const uint64_t BL31_COHERENT_RAM_LIMIT	= BL_COHERENT_RAM_END;
 #endif
 
 extern void plat_rcar_gic_driver_init(void);
@@ -44,9 +44,9 @@ void plat_cci_init(void)
 {
 	uint32_t prd;
 
-	prd = mmio_read_32(RCAR_PRR) & (RCAR_PRODUCT_MASK | RCAR_CUT_MASK);
+	prd = mmio_read_32(RCAR_PRR) & (PRR_PRODUCT_MASK | PRR_CUT_MASK);
 
-	if (RCAR_PRODUCT_H3_CUT10 == prd || RCAR_PRODUCT_H3_CUT11 == prd) {
+	if (PRR_PRODUCT_H3_CUT10 == prd || PRR_PRODUCT_H3_CUT11 == prd) {
 		cci_map[0U] = CCI500_CLUSTER0_SL_IFACE_IX;
 		cci_map[1U] = CCI500_CLUSTER1_SL_IFACE_IX;
 	}

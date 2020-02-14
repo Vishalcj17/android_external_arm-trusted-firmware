@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -130,6 +130,11 @@ ARM_CRYPTOCELL_INTEG		:=	0
 $(eval $(call assert_boolean,ARM_CRYPTOCELL_INTEG))
 $(eval $(call add_define,ARM_CRYPTOCELL_INTEG))
 
+# Enable PIE support for RESET_TO_BL31 case
+ifeq (${RESET_TO_BL31},1)
+    ENABLE_PIE			:=	1
+endif
+
 # CryptoCell integration relies on coherent buffers for passing data from
 # the AP CPU to the CryptoCell
 ifeq (${ARM_CRYPTOCELL_INTEG},1)
@@ -210,12 +215,17 @@ BL2U_SOURCES		+=	drivers/delay_timer/delay_timer.c		\
 BL31_SOURCES		+=	plat/arm/common/arm_bl31_setup.c		\
 				plat/arm/common/arm_pm.c			\
 				plat/arm/common/arm_topology.c			\
-				plat/arm/common/execution_state_switch.c	\
 				plat/common/plat_psci_common.c
 
 ifeq (${ENABLE_PMF}, 1)
-BL31_SOURCES		+=	plat/arm/common/arm_sip_svc.c			\
+ifeq (${ARCH}, aarch64)
+BL31_SOURCES		+=	plat/arm/common/aarch64/execution_state_switch.c\
+				plat/arm/common/arm_sip_svc.c			\
 				lib/pmf/pmf_smc.c
+else
+BL32_SOURCES		+=	plat/arm/common/arm_sip_svc.c			\
+				lib/pmf/pmf_smc.c
+endif
 endif
 
 ifeq (${EL3_EXCEPTION_HANDLING},1)
@@ -234,17 +244,8 @@ endif
 
 # Pointer Authentication sources
 ifeq (${ENABLE_PAUTH}, 1)
-PLAT_BL_COMMON_SOURCES	+=	plat/arm/common/aarch64/arm_pauth.c
-endif
-
-# SPM uses libfdt in Arm platforms
-ifeq (${SPM_MM},0)
-ifeq (${ENABLE_SPM},1)
-BL31_SOURCES		+=	common/fdt_wrappers.c			\
-				plat/common/plat_spm_rd.c		\
-				plat/common/plat_spm_sp.c		\
-				${LIBFDT_SRCS}
-endif
+PLAT_BL_COMMON_SOURCES	+=	plat/arm/common/aarch64/arm_pauth.c	\
+				lib/extensions/pauth/pauth_helpers.S
 endif
 
 ifneq (${TRUSTED_BOARD_BOOT},0)
@@ -253,7 +254,13 @@ ifneq (${TRUSTED_BOARD_BOOT},0)
     AUTH_SOURCES	:=	drivers/auth/auth_mod.c				\
 				drivers/auth/crypto_mod.c			\
 				drivers/auth/img_parser_mod.c			\
-				drivers/auth/tbbr/tbbr_cot.c			\
+
+    # Include the selected chain of trust sources.
+    ifeq (${COT},tbbr)
+        AUTH_SOURCES	+=	drivers/auth/tbbr/tbbr_cot.c
+    else
+        $(error Unknown chain of trust ${COT})
+    endif
 
     BL1_SOURCES		+=	${AUTH_SOURCES}					\
 				bl1/tbbr/tbbr_img_desc.c			\

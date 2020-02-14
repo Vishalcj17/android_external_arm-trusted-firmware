@@ -9,6 +9,7 @@
 #include <platform_def.h>
 
 #include <arch.h>
+#include <arch_features.h>
 #include <arch_helpers.h>
 #include <bl1/bl1.h>
 #include <common/bl_common.h>
@@ -30,6 +31,10 @@ DEFINE_SVC_UUID2(bl1_svc_uid,
 
 static void bl1_load_bl2(void);
 
+#if ENABLE_PAUTH
+uint64_t bl1_apiakey[2];
+#endif
+
 /*******************************************************************************
  * Helper utility to calculate the BL2 memory layout taking into consideration
  * the BL1 RW data assuming that it is at the top of the memory layout.
@@ -48,7 +53,7 @@ void bl1_calc_bl2_mem_layout(const meminfo_t *bl1_mem_layout,
 	bl2_mem_layout->total_base = bl1_mem_layout->total_base;
 	bl2_mem_layout->total_size = BL1_RW_BASE - bl1_mem_layout->total_base;
 
-	flush_dcache_range((unsigned long)bl2_mem_layout, sizeof(meminfo_t));
+	flush_dcache_range((uintptr_t)bl2_mem_layout, sizeof(meminfo_t));
 }
 
 /*******************************************************************************
@@ -59,18 +64,16 @@ void bl1_setup(void)
 	/* Perform early platform-specific setup */
 	bl1_early_platform_setup();
 
-#ifdef __aarch64__
-	/*
-	 * Update pointer authentication key before the MMU is enabled. It is
-	 * saved in the rodata section, that can be writen before enabling the
-	 * MMU. This function must be called after the console is initialized
-	 * in the early platform setup.
-	 */
-	bl_handle_pauth();
-#endif /* __aarch64__ */
-
 	/* Perform late platform-specific setup */
 	bl1_plat_arch_setup();
+
+#if CTX_INCLUDE_PAUTH_REGS
+	/*
+	 * Assert that the ARMv8.3-PAuth registers are present or an access
+	 * fault will be triggered when they are being saved or restored.
+	 */
+	assert(is_armv8_3_pauth_present());
+#endif /* CTX_INCLUDE_PAUTH_REGS */
 }
 
 /*******************************************************************************
@@ -131,6 +134,12 @@ void bl1_main(void)
 
 	/* Perform platform setup in BL1. */
 	bl1_platform_setup();
+
+#if ENABLE_PAUTH
+	/* Store APIAKey_EL1 key */
+	bl1_apiakey[0] = read_apiakeylo_el1();
+	bl1_apiakey[1] = read_apiakeyhi_el1();
+#endif /* ENABLE_PAUTH */
 
 	/* Get the image id of next image to load and run. */
 	image_id = bl1_plat_get_next_image_id();

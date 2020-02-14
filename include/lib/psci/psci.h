@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -20,7 +20,7 @@
 #ifdef PLAT_NUM_PWR_DOMAINS
 #define PSCI_NUM_PWR_DOMAINS	PLAT_NUM_PWR_DOMAINS
 #else
-#define PSCI_NUM_PWR_DOMAINS	(2 * PLATFORM_CORE_COUNT)
+#define PSCI_NUM_PWR_DOMAINS	(U(2) * PLATFORM_CORE_COUNT)
 #endif
 
 #define PSCI_NUM_NON_CPU_PWR_DOMAINS	(PSCI_NUM_PWR_DOMAINS - \
@@ -301,6 +301,8 @@ typedef struct plat_psci_ops {
 				const psci_power_state_t *target_state);
 	void (*pwr_domain_suspend)(const psci_power_state_t *target_state);
 	void (*pwr_domain_on_finish)(const psci_power_state_t *target_state);
+	void (*pwr_domain_on_finish_late)(
+				const psci_power_state_t *target_state);
 	void (*pwr_domain_suspend_finish)(
 				const psci_power_state_t *target_state);
 	void __dead2 (*pwr_domain_pwr_down_wfi)(

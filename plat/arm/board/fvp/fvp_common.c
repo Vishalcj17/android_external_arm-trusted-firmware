@@ -10,13 +10,15 @@
 #include <drivers/arm/cci.h>
 #include <drivers/arm/ccn.h>
 #include <drivers/arm/gicv2.h>
+#include <drivers/arm/sp804_delay_timer.h>
+#include <drivers/generic_delay_timer.h>
 #include <lib/mmio.h>
 #include <lib/xlat_tables/xlat_tables_compat.h>
 #include <plat/arm/common/arm_config.h>
 #include <plat/arm/common/plat_arm.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
-#include <services/secure_partition.h>
+#include <services/spm_mm_partition.h>
 
 #include "fvp_private.h"
 
@@ -94,11 +96,8 @@ const mmap_region_t plat_arm_mmap[] = {
 	ARM_MAP_BL1_RW,
 #endif
 #endif /* TRUSTED_BOARD_BOOT */
-#if ENABLE_SPM && SPM_MM
+#if SPM_MM
 	ARM_SP_IMAGE_MMAP,
-#endif
-#if ENABLE_SPM && !SPM_MM
-	PLAT_MAP_SP_PACKAGE_MEM_RW,
 #endif
 #if ARM_BL31_IN_DRAM
 	ARM_MAP_BL31_SEC_DRAM,
@@ -120,21 +119,22 @@ const mmap_region_t plat_arm_mmap[] = {
 #ifdef IMAGE_BL31
 const mmap_region_t plat_arm_mmap[] = {
 	ARM_MAP_SHARED_RAM,
+#if USE_DEBUGFS
+	/* Required by devfip, can be removed if devfip is not used */
+	V2M_MAP_FLASH0_RW,
+#endif /* USE_DEBUGFS */
 	ARM_MAP_EL3_TZC_DRAM,
 	V2M_MAP_IOFPGA,
 	MAP_DEVICE0,
 	MAP_DEVICE1,
 	ARM_V2M_MAP_MEM_PROTECT,
-#if ENABLE_SPM && SPM_MM
+#if SPM_MM
 	ARM_SPM_BUF_EL3_MMAP,
-#endif
-#if ENABLE_SPM && !SPM_MM
-	PLAT_MAP_SP_PACKAGE_MEM_RO,
 #endif
 	{0}
 };
 
-#if ENABLE_SPM && defined(IMAGE_BL31) && SPM_MM
+#if defined(IMAGE_BL31) && SPM_MM
 const mmap_region_t plat_arm_secure_partition_mmap[] = {
 	V2M_MAP_IOFPGA_EL0, /* for the UART */
 	MAP_REGION_FLAT(DEVICE0_BASE,				\
@@ -188,12 +188,12 @@ static unsigned int get_interconnect_master(void)
 }
 #endif
 
-#if ENABLE_SPM && defined(IMAGE_BL31) && SPM_MM
+#if defined(IMAGE_BL31) && SPM_MM
 /*
  * Boot information passed to a secure partition during initialisation. Linear
  * indices in MP information will be filled at runtime.
  */
-static secure_partition_mp_info_t sp_mp_info[] = {
+static spm_mm_mp_info_t sp_mp_info[] = {
 	[0] = {0x80000000, 0},
 	[1] = {0x80000001, 0},
 	[2] = {0x80000002, 0},
@@ -204,10 +204,10 @@ static secure_partition_mp_info_t sp_mp_info[] = {
 	[7] = {0x80000103, 0},
 };
 
-const secure_partition_boot_info_t plat_arm_secure_partition_boot_info = {
+const spm_mm_boot_info_t plat_arm_secure_partition_boot_info = {
 	.h.type              = PARAM_SP_IMAGE_BOOT_INFO,
 	.h.version           = VERSION_1,
-	.h.size              = sizeof(secure_partition_boot_info_t),
+	.h.size              = sizeof(spm_mm_boot_info_t),
 	.h.attr              = 0,
 	.sp_mem_base         = ARM_SP_IMAGE_BASE,
 	.sp_mem_limit        = ARM_SP_IMAGE_LIMIT,
@@ -231,7 +231,7 @@ const struct mmap_region *plat_get_secure_partition_mmap(void *cookie)
 	return plat_arm_secure_partition_mmap;
 }
 
-const struct secure_partition_boot_info *plat_get_secure_partition_boot_info(
+const struct spm_mm_boot_info *plat_get_secure_partition_boot_info(
 		void *cookie)
 {
 	return &plat_arm_secure_partition_boot_info;
@@ -407,3 +407,23 @@ int plat_get_mbedtls_heap(void **heap_addr, size_t *heap_size)
 	return arm_get_mbedtls_heap(heap_addr, heap_size);
 }
 #endif
+
+void fvp_timer_init(void)
+{
+#if FVP_USE_SP804_TIMER
+	/* Enable the clock override for SP804 timer 0, which means that no
+	 * clock dividers are applied and the raw (35MHz) clock will be used.
+	 */
+	mmio_write_32(V2M_SP810_BASE, FVP_SP810_CTRL_TIM0_OV);
+
+	/* Initialize delay timer driver using SP804 dual timer 0 */
+	sp804_timer_init(V2M_SP804_TIMER0_BASE,
+			SP804_TIMER_CLKMULT, SP804_TIMER_CLKDIV);
+#else
+	generic_delay_timer_init();
+
+	/* Enable System level generic timer */
+	mmio_write_32(ARM_SYS_CNTCTL_BASE + CNTCR_OFF,
+			CNTCR_FCREQ(0U) | CNTCR_EN);
+#endif /* FVP_USE_SP804_TIMER */
+}
