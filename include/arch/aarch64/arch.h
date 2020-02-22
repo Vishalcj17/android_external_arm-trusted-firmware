@@ -112,6 +112,7 @@
 /* CLIDR definitions */
 #define LOUIS_SHIFT		U(21)
 #define LOC_SHIFT		U(24)
+#define CTYPE_SHIFT(n)		U(3 * (n - 1))
 #define CLIDR_FIELD_WIDTH	U(3)
 
 /* CSSELR definitions */
@@ -132,12 +133,15 @@
 #define ID_AA64PFR0_EL2_SHIFT	U(8)
 #define ID_AA64PFR0_EL3_SHIFT	U(12)
 #define ID_AA64PFR0_AMU_SHIFT	U(44)
-#define ID_AA64PFR0_AMU_LENGTH	U(4)
 #define ID_AA64PFR0_AMU_MASK	ULL(0xf)
 #define ID_AA64PFR0_ELX_MASK	ULL(0xf)
+#define ID_AA64PFR0_GIC_SHIFT	U(24)
+#define ID_AA64PFR0_GIC_WIDTH	U(4)
+#define ID_AA64PFR0_GIC_MASK	ULL(0xf)
 #define ID_AA64PFR0_SVE_SHIFT	U(32)
 #define ID_AA64PFR0_SVE_MASK	ULL(0xf)
-#define ID_AA64PFR0_SVE_LENGTH	U(4)
+#define ID_AA64PFR0_SEL2_SHIFT	U(36)
+#define ID_AA64PFR0_SEL2_MASK	ULL(0xf)
 #define ID_AA64PFR0_MPAM_SHIFT	U(40)
 #define ID_AA64PFR0_MPAM_MASK	ULL(0xf)
 #define ID_AA64PFR0_DIT_SHIFT	U(48)
@@ -148,18 +152,14 @@
 #define ID_AA64PFR0_CSV2_MASK	ULL(0xf)
 #define ID_AA64PFR0_CSV2_LENGTH	U(4)
 
-/* ID_AA64DFR0_EL1.PMS definitions (for ARMv8.2+) */
-#define ID_AA64DFR0_PMS_SHIFT	U(32)
-#define ID_AA64DFR0_PMS_LENGTH	U(4)
-#define ID_AA64DFR0_PMS_MASK	ULL(0xf)
-
+/* Exception level handling */
 #define EL_IMPL_NONE		ULL(0)
 #define EL_IMPL_A64ONLY		ULL(1)
 #define EL_IMPL_A64_A32		ULL(2)
 
-#define ID_AA64PFR0_GIC_SHIFT	U(24)
-#define ID_AA64PFR0_GIC_WIDTH	U(4)
-#define ID_AA64PFR0_GIC_MASK	ULL(0xf)
+/* ID_AA64DFR0_EL1.PMS definitions (for ARMv8.2+) */
+#define ID_AA64DFR0_PMS_SHIFT	U(32)
+#define ID_AA64DFR0_PMS_MASK	ULL(0xf)
 
 /* ID_AA64ISAR1_EL1 definitions */
 #define ID_AA64ISAR1_EL1	S3_0_C0_C6_1
@@ -287,6 +287,7 @@
 #define SCR_RES1_BITS		((U(1) << 4) | (U(1) << 5))
 #define SCR_ATA_BIT		(U(1) << 26)
 #define SCR_FIEN_BIT		(U(1) << 21)
+#define SCR_EEL2_BIT		(U(1) << 18)
 #define SCR_API_BIT		(U(1) << 17)
 #define SCR_APK_BIT		(U(1) << 16)
 #define SCR_TWE_BIT		(U(1) << 13)
@@ -304,20 +305,25 @@
 #define SCR_RESET_VAL		SCR_RES1_BITS
 
 /* MDCR_EL3 definitions */
+#define MDCR_SCCD_BIT		(ULL(1) << 23)
+#define MDCR_SPME_BIT		(ULL(1) << 17)
+#define MDCR_SDD_BIT		(ULL(1) << 16)
 #define MDCR_SPD32(x)		((x) << 14)
 #define MDCR_SPD32_LEGACY	ULL(0x0)
 #define MDCR_SPD32_DISABLE	ULL(0x2)
 #define MDCR_SPD32_ENABLE	ULL(0x3)
-#define MDCR_SDD_BIT		(ULL(1) << 16)
 #define MDCR_NSPB(x)		((x) << 12)
 #define MDCR_NSPB_EL1		ULL(0x3)
 #define MDCR_TDOSA_BIT		(ULL(1) << 10)
 #define MDCR_TDA_BIT		(ULL(1) << 9)
 #define MDCR_TPM_BIT		(ULL(1) << 6)
-#define MDCR_SCCD_BIT		(ULL(1) << 23)
 #define MDCR_EL3_RESET_VAL	ULL(0x0)
 
 /* MDCR_EL2 definitions */
+#define MDCR_EL2_HLP		(U(1) << 26)
+#define MDCR_EL2_HCCD		(U(1) << 23)
+#define MDCR_EL2_TTRF		(U(1) << 19)
+#define MDCR_EL2_HPMD		(U(1) << 17)
 #define MDCR_EL2_TPMS		(U(1) << 14)
 #define MDCR_EL2_E2PB(x)	((x) << 12)
 #define MDCR_EL2_E2PB_EL1	U(0x3)
@@ -595,6 +601,8 @@
 #define ESR_EC_SHIFT			U(26)
 #define ESR_EC_MASK			U(0x3f)
 #define ESR_EC_LENGTH			U(6)
+#define ESR_ISS_SHIFT			U(0)
+#define ESR_ISS_LENGTH			U(25)
 #define EC_UNKNOWN			U(0x0)
 #define EC_WFE_WFI			U(0x1)
 #define EC_AARCH32_CP15_MRC_MCR		U(0x3)
@@ -621,6 +629,7 @@
 #define EC_AARCH32_FP			U(0x28)
 #define EC_AARCH64_FP			U(0x2c)
 #define EC_SERROR			U(0x2f)
+#define EC_BRK				U(0x3c)
 
 /*
  * External Abort bit in Instruction and Data Aborts synchronous exception
@@ -677,10 +686,14 @@
 #define PMCR_EL0_N_SHIFT	U(11)
 #define PMCR_EL0_N_MASK		U(0x1f)
 #define PMCR_EL0_N_BITS		(PMCR_EL0_N_MASK << PMCR_EL0_N_SHIFT)
+#define PMCR_EL0_LP_BIT		(U(1) << 7)
 #define PMCR_EL0_LC_BIT		(U(1) << 6)
 #define PMCR_EL0_DP_BIT		(U(1) << 5)
 #define PMCR_EL0_X_BIT		(U(1) << 4)
 #define PMCR_EL0_D_BIT		(U(1) << 3)
+#define PMCR_EL0_C_BIT		(U(1) << 2)
+#define PMCR_EL0_P_BIT		(U(1) << 1)
+#define PMCR_EL0_E_BIT		(U(1) << 0)
 
 /*******************************************************************************
  * Definitions for system register interface to SVE
@@ -890,5 +903,13 @@
  * Armv8.5 - new MSR encoding to directly access PSTATE.SSBS field
  ******************************************************************************/
 #define SSBS			S3_3_C4_C2_6
+
+/*******************************************************************************
+ * Armv8.5 - Memory Tagging Extension Registers
+ ******************************************************************************/
+#define TFSRE0_EL1		S3_0_C5_C6_1
+#define TFSR_EL1		S3_0_C5_C6_0
+#define RGSR_EL1		S3_0_C1_C0_5
+#define GCR_EL1			S3_0_C1_C0_6
 
 #endif /* ARCH_H */

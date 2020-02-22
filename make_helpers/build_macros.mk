@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015-2019, ARM Limited and Contributors. All rights reserved.
+# Copyright (c) 2015-2020, ARM Limited and Contributors. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -236,7 +236,7 @@ $(eval BL_CFLAGS := $(BL$(call uppercase,$(3))_CFLAGS))
 
 $(OBJ): $(2) $(filter-out %.d,$(MAKEFILE_LIST)) | bl$(3)_dirs
 	$$(ECHO) "  CC      $$<"
-	$$(Q)$$(CC) $$(TF_CFLAGS) $$(CFLAGS) $(BL_CFLAGS) -D$(IMAGE) $(MAKE_DEP) -c $$< -o $$@
+	$$(Q)$$(CC) $$(LTO_CFLAGS) $$(TF_CFLAGS) $$(CFLAGS) $(BL_CFLAGS) -D$(IMAGE) $(MAKE_DEP) -c $$< -o $$@
 
 -include $(DEP)
 
@@ -412,6 +412,7 @@ bl${1}_dirs: | ${OBJ_DIRS}
 
 $(eval $(call MAKE_OBJS,$(BUILD_DIR),$(SOURCES),$(1)))
 $(eval $(call MAKE_LD,$(LINKERFILE),$(BL_LINKERFILE),$(1)))
+$(eval BL_LDFLAGS := $(BL$(call uppercase,$(1))_LDFLAGS))
 
 ifeq ($(USE_ROMLIB),1)
 $(ELF): romlib.bin
@@ -427,14 +428,18 @@ else
 		$$(CC) $$(TF_CFLAGS) $$(CFLAGS) -xc -c - -o $(BUILD_DIR)/build_message.o
 endif
 ifneq ($(findstring armlink,$(notdir $(LD))),)
-	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) --entry=bl${1}_entrypoint \
+	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) $(BL_LDFLAGS) --entry=bl${1}_entrypoint \
 		--predefine="-D__LINKER__=$(__LINKER__)" \
 		--predefine="-DTF_CFLAGS=$(TF_CFLAGS)" \
 		--map --list="$(MAPFILE)" --scatter=${PLAT_DIR}/scat/bl${1}.scat \
 		$(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS) \
 		$(BUILD_DIR)/build_message.o $(OBJS)
+else ifneq ($(findstring gcc,$(notdir $(LD))),)
+	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) -Wl,-Map=$(MAPFILE) \
+		-Wl,-T$(LINKERFILE) $(BUILD_DIR)/build_message.o \
+		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS)
 else
-	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) -Map=$(MAPFILE) \
+	$$(Q)$$(LD) -o $$@ $$(TF_LDFLAGS) $$(LDFLAGS) $(BL_LDFLAGS) -Map=$(MAPFILE) \
 		--script $(LINKERFILE) $(BUILD_DIR)/build_message.o \
 		$(OBJS) $(LDPATHS) $(LIBWRAPPER) $(LDLIBS) $(BL_LIBS)
 endif
@@ -509,7 +514,7 @@ $(DOBJ): $(2) $(filter-out %.d,$(MAKEFILE_LIST)) | fdt_dirs
 	$(eval DTBS       := $(addprefix $(1)/,$(call SOURCES_TO_DTBS,$(2))))
 	$$(Q)$$(PP) $$(DTC_CPPFLAGS) -MT $(DTBS) -MMD -MF $(DTSDEP) -o $(DPRE) $$<
 	$${ECHO} "  DTC     $$<"
-	$$(Q)$$(DTC) $$(DTC_FLAGS) -i fdts -d $(DTBDEP) -o $$@ $(DPRE)
+	$$(Q)$$(DTC) $$(DTC_FLAGS) -d $(DTBDEP) -o $$@ $(DPRE)
 
 -include $(DTBDEP)
 -include $(DTSDEP)

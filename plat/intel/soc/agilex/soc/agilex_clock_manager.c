@@ -11,8 +11,8 @@
 #include <lib/mmio.h>
 
 #include "agilex_clock_manager.h"
-#include "agilex_handoff.h"
-#include "agilex_system_manager.h"
+#include "socfpga_handoff.h"
+#include "socfpga_system_manager.h"
 
 
 uint32_t wait_pll_lock(void)
@@ -222,6 +222,16 @@ void config_clkmgr_handoff(handoff *hoff_ptr)
 	mmio_write_32(CLKMGR_ALTERA + CLKMGR_ALTERA_PSIREFCTR,
 			hoff_ptr->alt_psirefctr);
 
+	/* Clear lost lock bypass mode */
+	mmio_write_32(CLKMGR_MAINPLL + CLKMGR_MAINPLL_LOSTLOCK, 0x1);
+	mmio_write_32(CLKMGR_PERPLL + CLKMGR_PERPLL_LOSTLOCK, 0x1);
+
+	mmio_setbits_32(CLKMGR_MAINPLL + CLKMGR_MAINPLL_PLLGLOB,
+			CLKMGR_CLR_LOSTLOCK_BYPASS);
+
+	mmio_setbits_32(CLKMGR_PERPLL + CLKMGR_PERPLL_PLLGLOB,
+			CLKMGR_CLR_LOSTLOCK_BYPASS);
+
 	/* Take all PLLs out of bypass */
 	mmio_write_32(CLKMGR_MAINPLL + CLKMGR_MAINPLL_BYPASS, 0);
 	wait_fsm();
@@ -251,9 +261,9 @@ void config_clkmgr_handoff(handoff *hoff_ptr)
 			CLKMGR_PERPLL_EN_RESET);
 
 	/* Pass clock source frequency into scratch register */
-	mmio_write_32(AGX_SYSMGR_CORE(SYSMGR_BOOT_SCRATCH_COLD_1),
+	mmio_write_32(SOCFPGA_SYSMGR(BOOT_SCRATCH_COLD_1),
 		hoff_ptr->hps_osc_clk_h);
-	mmio_write_32(AGX_SYSMGR_CORE(SYSMGR_BOOT_SCRATCH_COLD_2),
+	mmio_write_32(SOCFPGA_SYSMGR(BOOT_SCRATCH_COLD_2),
 		hoff_ptr->fpga_clk_hz);
 }
 
@@ -265,14 +275,14 @@ uint32_t get_ref_clk(uint32_t pllglob)
 
 	switch (CLKMGR_PSRC(pllglob)) {
 	case CLKMGR_PLLGLOB_PSRC_EOSC1:
-		scr_reg = AGX_SYSMGR_CORE(SYSMGR_BOOT_SCRATCH_COLD_1);
+		scr_reg = SOCFPGA_SYSMGR(BOOT_SCRATCH_COLD_1);
 		ref_clk = mmio_read_32(scr_reg);
 		break;
 	case CLKMGR_PLLGLOB_PSRC_INTOSC:
 		ref_clk = CLKMGR_INTOSC_HZ;
 		break;
 	case CLKMGR_PLLGLOB_PSRC_F2S:
-		scr_reg = AGX_SYSMGR_CORE(SYSMGR_BOOT_SCRATCH_COLD_2);
+		scr_reg = SOCFPGA_SYSMGR(BOOT_SCRATCH_COLD_2);
 		ref_clk = mmio_read_32(scr_reg);
 		break;
 	default:

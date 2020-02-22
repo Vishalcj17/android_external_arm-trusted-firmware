@@ -12,7 +12,7 @@ third_party {
     type: GIT
     value: "https://github.com/ARM-software/arm-trusted-firmware.git"
   }
-  version: "v2.1"
-  last_upgrade_date { year: 2019 month: 8 day: 20 }
+  version: "v2.2"
+  last_upgrade_date { year: 2020 month: 2 day: 5 }
   license_type: NOTICE
 }

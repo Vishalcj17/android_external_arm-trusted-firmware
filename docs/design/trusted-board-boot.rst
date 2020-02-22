@@ -8,8 +8,9 @@ Public-Key-Cryptography Standards (PKCS).
 
 This document describes the design of Trusted Firmware-A (TF-A) TBB, which is an
 implementation of the `Trusted Board Boot Requirements (TBBR)`_ specification,
-Arm DEN0006D. It should be used in conjunction with the `Firmware Update`_
-design document, which implements a specific aspect of the TBBR.
+Arm DEN0006D. It should be used in conjunction with the
+:ref:`Firmware Update (FWU)` design document, which implements a specific aspect
+of the TBBR.
 
 Chain of Trust
 --------------
@@ -186,7 +187,8 @@ The next step is executed for all the boot loader images.
 
 The Trusted Board Boot implementation spans both generic and platform-specific
 BL1 and BL2 code, and in tool code on the host build machine. The feature is
-enabled through use of specific build flags as described in the `User Guide`_.
+enabled through use of specific build flags as described in
+:ref:`Build Options`.
 
 On the host machine, a tool generates the certificates, which are included in
 the FIP along with the boot loader images. These certificates are loaded in
@@ -201,10 +203,11 @@ Authentication Framework
 
 The authentication framework included in TF-A provides support to implement
 the desired trusted boot sequence. Arm platforms use this framework to
-implement the boot requirements specified in the `TBBR-client`_ document.
+implement the boot requirements specified in the
+`Trusted Board Boot Requirements (TBBR)`_ document.
 
 More information about the authentication framework can be found in the
-`Auth Framework`_ document.
+:ref:`Authentication Framework & Chain of Trust` document.
 
 Certificate Generation Tool
 ---------------------------
@@ -219,17 +222,16 @@ passed as inputs to the ``fiptool`` utility for creating the FIP.
 The certificates are also stored individually in the in the output build
 directory.
 
-The tool resides in the ``tools/cert_create`` directory. It uses OpenSSL SSL
-library version 1.0.1 or later to generate the X.509 certificates. Instructions
-for building and using the tool can be found in the `User Guide`_.
+The tool resides in the ``tools/cert_create`` directory. It uses the OpenSSL SSL
+library version to generate the X.509 certificates. The specific version of the
+library that is required is given in the :ref:`Prerequisites` document.
+
+Instructions for building and using the tool can be found at
+:ref:`tools_build_cert_create`.
 
 --------------
 
 *Copyright (c) 2015-2019, Arm Limited and Contributors. All rights reserved.*
 
-.. _Firmware Update: ../components/firmware-update.rst
 .. _X.509 v3: https://tools.ietf.org/rfc/rfc5280.txt
-.. _User Guide: ../getting_started/user-guide.rst
-.. _Auth Framework: auth-framework.rst
-.. _TBBR-client: https://developer.arm.com/docs/den0006/latest/trusted-board-boot-requirements-client-tbbr-client-armv8-a
-.. _Trusted Board Boot Requirements (TBBR): `TBBR-client`_
+.. _Trusted Board Boot Requirements (TBBR): https://developer.arm.com/docs/den0006/latest/trusted-board-boot-requirements-client-tbbr-client-armv8-a

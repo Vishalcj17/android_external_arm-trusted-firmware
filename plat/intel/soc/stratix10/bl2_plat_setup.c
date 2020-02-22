@@ -1,37 +1,29 @@
 /*
  * Copyright (c) 2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2019, Intel Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <arch.h>
 #include <arch_helpers.h>
-#include <drivers/arm/gicv2.h>
-
-#include <drivers/generic_delay_timer.h>
-#include <drivers/console.h>
-#include <drivers/ti/uart/uart_16550.h>
 #include <common/bl_common.h>
 #include <common/debug.h>
 #include <common/desc_image_load.h>
-#include <errno.h>
-#include <drivers/io/io_storage.h>
-#include <common/image_decompress.h>
-#include <plat/common/platform.h>
-#include <platform_def.h>
-#include <socfpga_private.h>
+#include <drivers/generic_delay_timer.h>
 #include <drivers/synopsys/dw_mmc.h>
-#include <lib/mmio.h>
+#include <drivers/ti/uart/uart_16550.h>
 #include <lib/xlat_tables/xlat_tables.h>
 
-#include "s10_memory_controller.h"
-#include "s10_reset_manager.h"
-#include "s10_clock_manager.h"
-#include "s10_handoff.h"
-#include "s10_pinmux.h"
-#include "stratix10_private.h"
-#include "include/s10_mailbox.h"
 #include "qspi/cadence_qspi.h"
+#include "socfpga_handoff.h"
+#include "socfpga_mailbox.h"
+#include "socfpga_private.h"
+#include "socfpga_reset_manager.h"
+#include "socfpga_system_manager.h"
+#include "s10_clock_manager.h"
+#include "s10_memory_controller.h"
+#include "s10_pinmux.h"
 #include "wdt/watchdog.h"
 
 
@@ -63,7 +55,7 @@ void bl2_el3_early_platform_setup(u_register_t x0, u_register_t x1,
 
 	generic_delay_timer_init();
 
-	if (s10_get_handoff(&reverse_handoff_ptr))
+	if (socfpga_get_handoff(&reverse_handoff_ptr))
 		return;
 	config_pinmux(&reverse_handoff_ptr);
 	boot_source = reverse_handoff_ptr.boot_source;
@@ -73,13 +65,17 @@ void bl2_el3_early_platform_setup(u_register_t x0, u_register_t x1,
 	deassert_peripheral_reset();
 	config_hps_hs_before_warm_reset();
 
-	watchdog_init(get_wdt_clk(&reverse_handoff_ptr));
+	watchdog_init(get_wdt_clk());
 
-	console_16550_register(PLAT_UART0_BASE, PLAT_UART_CLOCK, PLAT_BAUDRATE,
+	console_16550_register(PLAT_UART0_BASE, get_uart_clk(), PLAT_BAUDRATE,
 		&console);
 
 	socfpga_delay_timer_init();
 	init_hard_memory_controller();
+	mailbox_init();
+
+	if (!intel_mailbox_is_fpga_not_ready())
+		socfpga_bridges_enable();
 }
 
 
@@ -107,7 +103,7 @@ void bl2_el3_plat_arch_setup(void)
 
 	enable_mmu_el3(0);
 
-	dw_mmc_params_t params = EMMC_INIT_PARAMS(0x100000);
+	dw_mmc_params_t params = EMMC_INIT_PARAMS(0x100000, get_mmc_clk());
 
 	info.mmc_dev_type = MMC_IS_SD;
 	info.ocr_voltage = OCR_3_3_3_4 | OCR_3_2_3_3;
@@ -115,7 +111,7 @@ void bl2_el3_plat_arch_setup(void)
 	switch (boot_source) {
 	case BOOT_SOURCE_SDMMC:
 		dw_mmc_init(&params, &info);
-		stratix10_io_setup(boot_source);
+		socfpga_io_setup(boot_source);
 		break;
 
 	case BOOT_SOURCE_QSPI:
@@ -124,7 +120,7 @@ void bl2_el3_plat_arch_setup(void)
 		cad_qspi_init(0, QSPI_CONFIG_CPHA, QSPI_CONFIG_CPOL,
 			QSPI_CONFIG_CSDA, QSPI_CONFIG_CSDADS,
 			QSPI_CONFIG_CSEOT, QSPI_CONFIG_CSSOT, 0);
-		stratix10_io_setup(boot_source);
+		socfpga_io_setup(boot_source);
 		break;
 
 	default:

@@ -21,8 +21,8 @@ independent implementation of services for each group, which are then compiled
 into the BL31 image. This simplifies the integration of common software from
 Arm to support `PSCI`_, Secure Monitor for a Trusted OS and SoC specific
 software. The common runtime services framework ensures that SMC Functions are
-dispatched to their respective service implementation - the `Firmware Design`_
-provides details of how this is achieved.
+dispatched to their respective service implementation - the
+:ref:`Firmware Design` document provides details of how this is achieved.
 
 The interface and operation of the runtime services depends heavily on the
 concepts and definitions described in the `SMCCC`_, in particular SMC Function
@@ -79,11 +79,11 @@ handler will be responsible for all SMC Functions within a given service type.
 Getting started
 ---------------
 
-TF-A has a `services`_ directory in the source tree under which
+TF-A has a ``services`` directory in the source tree under which
 each owning entity can place the implementation of its runtime service. The
-`PSCI`_ implementation is located here in the `lib/psci`_ directory.
+`PSCI`_ implementation is located here in the ``lib/psci`` directory.
 
-Runtime service sources will need to include the `runtime_svc.h`_ header file.
+Runtime service sources will need to include the ``runtime_svc.h`` header file.
 
 Registering a runtime service
 -----------------------------
@@ -100,7 +100,7 @@ initialization and call handler functions.
    is also used for diagnostic purposes
 
 -  ``_start`` and ``_end`` values must be based on the ``OEN_*`` values defined in
-   `smccc.h`_
+   ``smccc.h``
 
 -  ``_type`` must be one of ``SMC_TYPE_FAST`` or ``SMC_TYPE_YIELD``
 
@@ -132,7 +132,7 @@ to ensure that the following conditions are met:
 #. The ``_type`` is one of ``SMC_TYPE_FAST`` or ``SMC_TYPE_YIELD``
 #. ``_setup`` and ``_smch`` routines have been specified
 
-`std_svc_setup.c`_ provides an example of registering a runtime service:
+``std_svc_setup.c`` provides an example of registering a runtime service:
 
 .. code:: c
 
@@ -244,17 +244,35 @@ The handler is responsible for:
 
    TF-A expects owning entities to follow this recommendation.
 
-#. Returning the result to the caller. The `SMCCC`_ allows for up to 256 bits
-   of return value in SMC64 using X0-X3 and 128 bits in SMC32 using W0-W3. The
-   framework provides a family of macros to set the multi-register return
-   value and complete the handler:
+#. Returning the result to the caller. Based on `SMCCC`_ spec, results are
+   returned in W0-W7(X0-X7) registers for SMC32(SMC64) calls from AArch64
+   state. Results are returned in R0-R7 registers for SMC32 calls from AArch32
+   state. The framework provides a family of macros to set the multi-register
+   return value and complete the handler:
 
    .. code:: c
+
+       AArch64 state:
 
        SMC_RET1(handle, x0);
        SMC_RET2(handle, x0, x1);
        SMC_RET3(handle, x0, x1, x2);
        SMC_RET4(handle, x0, x1, x2, x3);
+       SMC_RET5(handle, x0, x1, x2, x3, x4);
+       SMC_RET6(handle, x0, x1, x2, x3, x4, x5);
+       SMC_RET7(handle, x0, x1, x2, x3, x4, x5, x6);
+       SMC_RET8(handle, x0, x1, x2, x3, x4, x5, x6, x7);
+
+       AArch32 state:
+
+       SMC_RET1(handle, r0);
+       SMC_RET2(handle, r0, r1);
+       SMC_RET3(handle, r0, r1, r2);
+       SMC_RET4(handle, r0, r1, r2, r3);
+       SMC_RET5(handle, r0, r1, r2, r3, r4);
+       SMC_RET6(handle, r0, r1, r2, r3, r4, r5);
+       SMC_RET7(handle, r0, r1, r2, r3, r4, r5, r6);
+       SMC_RET8(handle, r0, r1, r2, r3, r4, r5, r6, r7);
 
 The ``cookie`` parameter to the handler is reserved for future use and can be
 ignored. The ``handle`` is returned by the SMC handler - completion of the
@@ -296,13 +314,7 @@ provide this information....
 
 --------------
 
-*Copyright (c) 2014-2018, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2014-2019, Arm Limited and Contributors. All rights reserved.*
 
 .. _SMCCC: http://infocenter.arm.com/help/topic/com.arm.doc.den0028a/index.html
 .. _PSCI: http://infocenter.arm.com/help/topic/com.arm.doc.den0022c/DEN0022C_Power_State_Coordination_Interface.pdf
-.. _Firmware Design: ../design/firmware-design.rst
-.. _services: ../../services
-.. _lib/psci: ../../lib/psci
-.. _runtime_svc.h: ../../include/common/runtime_svc.h
-.. _smccc.h: ../../include/lib/smccc.h
-.. _std_svc_setup.c: ../../services/std_svc/std_svc_setup.c

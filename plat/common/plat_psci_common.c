@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -31,6 +31,8 @@
 #define PSCI_STAT_ID_EXIT_LOW_PWR		1
 #define PSCI_STAT_TOTAL_IDS			2
 
+PMF_DECLARE_CAPTURE_TIMESTAMP(psci_svc)
+PMF_DECLARE_GET_TIMESTAMP(psci_svc)
 PMF_REGISTER_SERVICE(psci_svc, PMF_PSCI_STAT_SVC_ID, PSCI_STAT_TOTAL_IDS,
 	PMF_STORE_ENABLE)
 
@@ -92,7 +94,7 @@ void plat_psci_stat_accounting_stop(
  */
 u_register_t plat_psci_stat_get_residency(unsigned int lvl,
 	const psci_power_state_t *state_info,
-	int last_cpu_idx)
+	unsigned int last_cpu_idx)
 {
 	plat_local_state_t state;
 	unsigned long long pwrup_ts = 0, pwrdn_ts = 0;
@@ -103,7 +105,7 @@ u_register_t plat_psci_stat_get_residency(unsigned int lvl,
 	assert(last_cpu_idx <= PLATFORM_CORE_COUNT);
 
 	if (lvl == PSCI_CPU_PWR_LVL)
-		assert((unsigned int)last_cpu_idx == plat_my_core_pos());
+		assert(last_cpu_idx == plat_my_core_pos());
 
 	/*
 	 * If power down is requested, then timestamp capture will

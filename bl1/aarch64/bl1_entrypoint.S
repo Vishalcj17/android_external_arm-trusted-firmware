@@ -30,7 +30,8 @@ func bl1_entrypoint
 		_secondary_cold_boot=!COLD_BOOT_SINGLE_CPU	\
 		_init_memory=1					\
 		_init_c_runtime=1				\
-		_exception_vectors=bl1_exceptions
+		_exception_vectors=bl1_exceptions		\
+		_pie_fixup_size=0
 
 	/* --------------------------------------------------------------------
 	 * Perform BL1 setup
@@ -38,15 +39,12 @@ func bl1_entrypoint
 	 */
 	bl	bl1_setup
 
+#if ENABLE_PAUTH
 	/* --------------------------------------------------------------------
-	 * Enable pointer authentication
+	 * Program APIAKey_EL1 and enable pointer authentication.
 	 * --------------------------------------------------------------------
 	 */
-#if ENABLE_PAUTH
-	mrs	x0, sctlr_el3
-	orr	x0, x0, #SCTLR_EnIA_BIT
-	msr	sctlr_el3, x0
-	isb
+	bl	pauth_init_enable_el3
 #endif /* ENABLE_PAUTH */
 
 	/* --------------------------------------------------------------------
@@ -56,16 +54,12 @@ func bl1_entrypoint
 	 */
 	bl	bl1_main
 
+#if ENABLE_PAUTH
 	/* --------------------------------------------------------------------
-	 * Disable pointer authentication before jumping to BL31 or that will
-	 * cause an authentication failure during the early platform init.
+	 * Disable pointer authentication before jumping to next boot image.
 	 * --------------------------------------------------------------------
 	 */
-#if ENABLE_PAUTH
-	mrs	x0, sctlr_el3
-	bic	x0, x0, #SCTLR_EnIA_BIT
-	msr	sctlr_el3, x0
-	isb
+	bl	pauth_disable_el3
 #endif /* ENABLE_PAUTH */
 
 	/* --------------------------------------------------
